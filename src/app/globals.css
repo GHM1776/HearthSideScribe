@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cinzel+Decorative:wght@400;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --castle-bg: #1A1215;
+  --castle-surface: #2A1F23;
+  --castle-surface-light: #3A2D32;
+  --gold: #C4993B;
+  --gold-bright: #D4A847;
+  --gold-glow: rgba(196, 153, 59, 0.3);
+  --crimson: #8B1A1A;
+  --parchment: #F0E6D3;
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Crimson Pro', serif;
+  background-color: var(--castle-bg);
+  color: var(--parchment);
+  overflow-x: hidden;
+  min-height: 100dvh;
+}
+
+.vignette-overlay {
+  position: fixed; inset: 0; pointer-events: none; z-index: 5;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(10, 6, 8, 0.5) 100%);
+}
+
+.stone-overlay {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0.03;
+  background-image: repeating-conic-gradient(rgba(255,255,255,0.03) 0% 25%, transparent 0% 50%);
+  background-size: 40px 40px;
+}
+
+.rain-container { position: fixed; inset: 0; pointer-events: none; z-index: 4; overflow: hidden; }
+
+.raindrop {
+  position: absolute; top: -10vh; width: 1px; height: 15px;
+  background: linear-gradient(to bottom, transparent, rgba(174, 194, 224, 0.3), transparent);
+  animation: rainFall linear infinite;
+}
+
+@keyframes rainFall {
+  0% { transform: translateY(-10vh) translateX(0); opacity: 0; }
+  5% { opacity: 0.6; }
+  95% { opacity: 0.6; }
+  100% { transform: translateY(110vh) translateX(-15px); opacity: 0; }
+}
+
+.dust-particle {
+  position: absolute; width: 2px; height: 2px; background: var(--gold);
+  border-radius: 50%; opacity: 0; animation: dustFloat linear infinite;
+}
+
+@keyframes dustFloat {
+  0% { transform: translateY(0) translateX(0) scale(0); opacity: 0; }
+  10% { opacity: 0.6; transform: translateY(-10vh) translateX(5px) scale(1); }
+  50% { opacity: 0.3; }
+  90% { opacity: 0.1; }
+  100% { transform: translateY(-100vh) translateX(-15px) scale(0.3); opacity: 0; }
+}
+
+.candle-glow { position: relative; }
+.candle-glow::before {
+  content: ''; position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
+  width: 300px; height: 200px; pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse at center, rgba(196,153,59,0.12) 0%, rgba(196,153,59,0.05) 40%, transparent 70%);
+  animation: candleFlicker 3s ease-in-out infinite alternate;
+}
+
+@keyframes candleFlicker {
+  0% { opacity: 0.7; transform: translateX(-50%) scale(1); }
+  25% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+  50% { opacity: 0.75; transform: translateX(-50%) scale(0.97); }
+  75% { opacity: 0.9; transform: translateX(-50%) scale(1.02); }
+  100% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+}
+
+.lightning-overlay {
+  position: fixed; inset: 0; pointer-events: none; z-index: 6;
+  background: white; opacity: 0;
+}
+.lightning-overlay.flash { animation: lightningFlash 0.3s ease-out; }
+
+@keyframes lightningFlash {
+  0% { opacity: 0; } 10% { opacity: 0.08; } 20% { opacity: 0; }
+  30% { opacity: 0.12; } 50% { opacity: 0.03; } 100% { opacity: 0; }
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--castle-bg); }
+::-webkit-scrollbar-thumb { background: var(--castle-surface-light); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+::selection { background: rgba(196, 153, 59, 0.3); color: var(--parchment); }
+
+@layer components {
+  .text-glow { text-shadow: 0 0 20px rgba(196, 153, 59, 0.3); }
+
+  .castle-card {
+    @apply bg-castle-surface rounded-xl border border-castle-border;
+    backdrop-filter: blur(8px);
+  }
+
+  .castle-card-hover { @apply castle-card transition-all duration-300; }
+  .castle-card-hover:hover, .castle-card-hover:active {
+    @apply border-castle-border-bright;
+    box-shadow: 0 0 20px rgba(196, 153, 59, 0.08);
+  }
+
+  .btn-gold {
+    @apply bg-gold text-castle-bg font-display font-semibold px-6 py-3 rounded-lg transition-all duration-300 active:scale-95;
+    text-shadow: none;
+  }
+  .btn-gold:hover { @apply bg-gold-bright; box-shadow: 0 0 25px rgba(196, 153, 59, 0.3); }
+
+  .btn-ghost {
+    @apply border border-castle-border text-parchment font-display px-6 py-3 rounded-lg transition-all duration-300 active:scale-95;
+  }
+  .btn-ghost:hover { @apply border-gold text-gold; }
+
+  .input-castle {
+    @apply w-full bg-castle-surface border border-castle-border rounded-lg px-4 py-3 text-parchment font-body text-base outline-none transition-all duration-300 placeholder:text-parchment/30;
+  }
+  .input-castle:focus { @apply border-gold; box-shadow: 0 0 15px rgba(196, 153, 59, 0.1); }
+
+  .scroll-row {
+    @apply flex gap-4 overflow-x-auto pb-4 px-4 -mx-4;
+    scrollbar-width: none; -ms-overflow-style: none;
+  }
+  .scroll-row::-webkit-scrollbar { display: none; }
+
+  .star { @apply text-2xl cursor-pointer transition-transform duration-150 active:scale-125; }
+  .star-filled { @apply text-gold-bright; filter: drop-shadow(0 0 4px rgba(196, 153, 59, 0.4)); }
+  .star-empty { @apply text-castle-surface-light; }
+
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 z-50 bg-castle-surface/95 border-t border-castle-border backdrop-blur-md;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .page-container { @apply min-h-[100dvh] pb-24 pt-4 px-4; }
+  .section-heading { @apply font-display text-gold text-lg font-semibold tracking-wide; }
+}
+
+.sound-toggle {
+  @apply fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-castle-surface/80 border border-castle-border flex items-center justify-center backdrop-blur-sm transition-all duration-300 active:scale-90;
+}
+.sound-toggle:hover { @apply border-gold; }
+.sound-toggle.active { @apply border-gold bg-gold/10; }
+
+@supports (padding: max(0px)) {
+  .page-container { padding-bottom: max(6rem, calc(5rem + env(safe-area-inset-bottom))); }
+}
+
+@media (max-width: 768px) { html { overscroll-behavior: none; } }
+@media (pointer: coarse) { button, a, [role="button"] { min-height: 44px; min-width: 44px; } }
