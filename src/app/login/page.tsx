@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, CheckCircle, AlertCircle, Lock } from 'lucide-react';
+import { Suspense } from 'react';
 
 const OWL = '\u{1F989}';
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
   const [error, setError] = useState('');
@@ -40,7 +41,6 @@ export default function LoginPage() {
           <p className="font-body text-parchment/40 text-sm italic mt-4">&ldquo;A castle library for two&rdquo;</p>
         </div>
 
-        {/* Unauthorized notice */}
         {isUnauthorized && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -91,5 +91,13 @@ export default function LoginPage() {
         </AnimatePresence>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }
