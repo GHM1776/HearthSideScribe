@@ -252,12 +252,14 @@ async function handleGenerate(supabase: ReturnType<typeof getSupabase>, body: { 
   // Check if picks already exist
   const { data: existing } = await supabase
     .from('monthly_picks')
-    .select('id, regeneration_count')
+    .select('id, regeneration_count, status')
     .eq('month', month)
     .eq('year', year)
     .maybeSingle();
 
-  if (existing && existing.regeneration_count >= MAX_REGENERATIONS) {
+  const isNewCycle = existing?.status === 'completed';
+
+  if (existing && !isNewCycle && existing.regeneration_count >= MAX_REGENERATIONS) {
     return NextResponse.json({ error: 'Maximum regenerations reached for this month' }, { status: 400 });
   }
 
@@ -442,9 +444,13 @@ Return ONLY a valid JSON object (no markdown, no backticks) with this structure:
     fresh_pick: bookIds.fresh,
     reread_pick: bookIds.reread,
     wildcard_pick: bookIds.wildcard,
+    selected_book: null,
+    greg_vote: null,
+    mati_vote: null,
     ai_reasoning: parsed.reasoning + '\n\n' + parsed.picks.map((p) => `**${p.pick_type.toUpperCase()}:** ${p.pitch}`).join('\n\n'),
+    ai_tiebreak_reasoning: null,
     status: 'voting' as const,
-    regeneration_count: existing ? existing.regeneration_count + 1 : 0,
+    regeneration_count: (existing && !isNewCycle) ? existing.regeneration_count + 1 : 0,
   };
 
   if (existing) {

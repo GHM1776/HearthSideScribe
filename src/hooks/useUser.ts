@@ -20,7 +20,7 @@ export function useUser() {
 
       const { data: clubUser } = await supabase
         .from('users')
-        .select('*')
+        .select('id, auth_id, name, email, phone, created_at')
         .eq('auth_id', authUser.id)
         .single();
 

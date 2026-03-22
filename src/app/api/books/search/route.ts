@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     });
 
     // 3. Limit to 3 results
-    const results = deduped.slice(0, 3);
+    const results = deduped;
 
     return NextResponse.json({ results });
   } catch (error) {

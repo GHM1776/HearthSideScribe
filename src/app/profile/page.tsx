@@ -49,6 +49,21 @@ export default function ProfilePage() {
     router.push('/login');
   };
 
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+useEffect(() => {
+  if (!user) return;
+  const supabase = createClient();
+  supabase
+    .from('users')
+    .select('avatar_url')
+    .eq('id', user.id)
+    .single()
+    .then(({ data }) => {
+      if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+    });
+}, [user]);
+
   // Reading stats
   const totalBooks = userBooks.length;
   const readCount = userBooks.filter((ub) => ub.status === 'read' || ub.status === 'would_reread').length;
@@ -59,7 +74,7 @@ export default function ProfilePage() {
     ? (ratedBooks.reduce((sum, ub) => sum + (ub.rating || 0), 0) / ratedBooks.length).toFixed(1)
     : null;
 
-  const hasAvatar = user?.avatar_url && user.avatar_url.startsWith('data:image/');
+  const hasAvatar = avatarUrl && avatarUrl.startsWith('data:image/');
 
   if (userLoading) {
     return (
@@ -93,7 +108,7 @@ export default function ProfilePage() {
         <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-gold/30 mx-auto shadow-lg shadow-black/30">
           {hasAvatar ? (
             <img
-              src={user!.avatar_url!}
+              src={avatarUrl!}
               alt={`${user!.name}'s avatar`}
               className="w-full h-full object-cover"
             />

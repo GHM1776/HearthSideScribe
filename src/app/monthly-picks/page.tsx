@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, BookOpen, RefreshCw, Check, Loader2, Crown, Scroll } from 'lucide-react';
+import { Sparkles, BookOpen, RefreshCw, Check, Loader2, Crown, Scroll, PartyPopper } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import BottomNav from '@/components/BottomNav';
 import { MONTHS, MAX_REGENERATIONS } from '@/lib/constants';
@@ -48,7 +48,6 @@ export default function MonthlyPicksPage() {
       const data = await res.json();
       setPick(data.pick);
       setBooks(data.books || {});
-      // If picks exist, reveal all cards immediately
       if (data.pick) {
         setRevealedCards(['fresh', 'reread', 'wildcard']);
       }
@@ -78,8 +77,8 @@ export default function MonthlyPicksPage() {
         const data = await res.json();
         throw new Error(data.error || 'Generation failed');
       }
-      // Re-fetch to get the new picks with book details
       await fetchPicks();
+      // Notify both users via SMS
       fetch('/api/sms/picks-ready', { method: 'POST' }).catch(() => {});
       // Stagger the card reveals
       setRevealedCards([]);
@@ -92,6 +91,14 @@ export default function MonthlyPicksPage() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Start a fresh cycle — resets the completed pick so new ones can be generated
+  const handleNewCycle = async () => {
+    // The generate endpoint handles creating a new month entry or
+    // regenerating an existing one. For completed picks, we pass
+    // a signal that this is a new cycle.
+    await handleGenerate();
   };
 
   // Cast a vote
@@ -109,13 +116,10 @@ export default function MonthlyPicksPage() {
       if (!res.ok) throw new Error(data.error || 'Vote failed');
 
       if (data.agreed) {
-        // Both agreed — re-fetch to show selected state
         await fetchPicks();
       } else if (data.needsTiebreak) {
-        // Disagreement — trigger tiebreak automatically
         handleTiebreak();
       } else {
-        // Vote recorded, waiting for partner
         await fetchPicks();
       }
     } catch (err: unknown) {
@@ -162,6 +166,9 @@ export default function MonthlyPicksPage() {
     { type: 'wildcard', label: 'The Wildcard', icon: '🎲', book: books[pick.wildcard_pick || ''] || null, bookId: pick.wildcard_pick },
   ] : [];
 
+  const isCompleted = pick?.status === 'completed';
+  const selectedBook = pick?.selected_book ? books[pick.selected_book] : null;
+
   if (userLoading || isLoading) {
     return (
       <div className="page-container flex items-center justify-center">
@@ -198,7 +205,113 @@ export default function MonthlyPicksPage() {
         )}
       </AnimatePresence>
 
-      {/* No picks yet — generate button */}
+      {/* ─── COMPLETED STATE ─── */}
+      {isCompleted && (
+        <>
+          {/* Celebration */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="castle-card p-6 text-center space-y-4 border-gold/40"
+          >
+            <div className="flex items-center justify-center gap-3">
+              <PartyPopper size={24} className="text-gold" />
+              <Crown size={28} className="text-gold" />
+              <PartyPopper size={24} className="text-gold" />
+            </div>
+            <p className="font-display text-gold text-lg">Book Completed!</p>
+            {selectedBook && (
+              <div className="space-y-2">
+                <div className="flex justify-center">
+                  {selectedBook.cover_url && (
+                    <img
+                      src={selectedBook.cover_url}
+                      alt={selectedBook.title}
+                      className="w-20 h-[120px] rounded-lg shadow-lg shadow-black/30 object-cover"
+                    />
+                  )}
+                </div>
+                <p className="font-display text-parchment text-base">{selectedBook.title}</p>
+                <p className="font-body text-parchment/50 text-sm">{selectedBook.author}</p>
+              </div>
+            )}
+            <p className="font-body text-parchment/50 text-sm leading-relaxed">
+              You&apos;ve both finished this month&apos;s read! Don&apos;t forget to rate it and share your hot takes on the book detail page.
+            </p>
+          </motion.div>
+
+          {/* AI Reasoning from this month */}
+          {pick?.ai_reasoning && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="castle-card p-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="text-xl flex-shrink-0">{OWL}</div>
+                <div className="flex-1">
+                  <p className="font-display text-gold text-xs uppercase tracking-wider mb-2">Owliver&apos;s Pick Reasoning</p>
+                  <div className="font-body text-parchment/70 text-sm leading-relaxed space-y-2">
+                    {pick.ai_reasoning.split('\n\n').map((paragraph, i) => (
+                      <p key={i}>{paragraph.replace(/\*\*/g, '')}</p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Tiebreak reasoning if applicable */}
+          {pick?.ai_tiebreak_reasoning && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="castle-card p-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="text-xl flex-shrink-0">{OWL}</div>
+                <div className="flex-1">
+                  <p className="font-display text-gold text-xs uppercase tracking-wider mb-2">Tiebreak Ruling</p>
+                  <p className="font-body text-parchment/70 text-sm leading-relaxed">
+                    {pick.ai_tiebreak_reasoning}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Generate new picks for next cycle */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="castle-card p-6 text-center space-y-4"
+          >
+            <div className="text-4xl">{OWL}</div>
+            <div className="space-y-2">
+              <p className="font-display text-gold text-base">Ready for the next chapter?</p>
+              <p className="font-body text-parchment/50 text-sm">
+                Owliver is ready to pick your next read. Hit the button and the owl will consult both your profiles.
+              </p>
+            </div>
+            <button
+              onClick={handleNewCycle}
+              disabled={isGenerating}
+              className="btn-gold mx-auto flex items-center gap-2"
+            >
+              {isGenerating ? (
+                <><Loader2 size={18} className="animate-spin" /> Generating...</>
+              ) : (
+                <><Sparkles size={18} /> Generate New Picks</>
+              )}
+            </button>
+          </motion.div>
+        </>
+      )}
+
+      {/* ─── NO PICKS YET ─── */}
       {!pick && !isGenerating && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -222,8 +335,8 @@ export default function MonthlyPicksPage() {
         </motion.div>
       )}
 
-      {/* Generating spinner */}
-      {isGenerating && (
+      {/* ─── GENERATING SPINNER ─── */}
+      {isGenerating && !isCompleted && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -240,8 +353,8 @@ export default function MonthlyPicksPage() {
         </motion.div>
       )}
 
-      {/* Pick cards */}
-      {pick && !isGenerating && (
+      {/* ─── PICK CARDS (voting/selected states) ─── */}
+      {pick && !isGenerating && !isCompleted && (
         <div className="space-y-4">
           {pickCards.map((card) => {
             const cardRevealed = isRevealed(card.type);
@@ -260,7 +373,6 @@ export default function MonthlyPicksPage() {
                 <div className={`castle-card overflow-hidden transition-all duration-500 ${
                   isSelected ? 'border-gold ring-1 ring-gold/30' : ''
                 }`}>
-                  {/* Card header */}
                   <div className="px-4 pt-3 pb-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{card.icon}</span>
@@ -278,17 +390,12 @@ export default function MonthlyPicksPage() {
                     )}
                   </div>
 
-                  {/* Book content */}
                   {card.book ? (
                     <div className="px-4 pb-4">
                       <div className="flex gap-4">
                         <div className="w-20 h-[120px] rounded-lg overflow-hidden shadow-lg shadow-black/30 flex-shrink-0">
                           {card.book.cover_url ? (
-                            <img
-                              src={card.book.cover_url}
-                              alt={card.book.title}
-                              className="w-full h-full object-cover"
-                            />
+                            <img src={card.book.cover_url} alt={card.book.title} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full bg-castle-surface-light flex items-center justify-center">
                               <BookOpen size={24} className="text-parchment/20" />
@@ -301,12 +408,7 @@ export default function MonthlyPicksPage() {
                           {card.book.genres && card.book.genres.length > 0 && (
                             <div className="flex flex-wrap gap-1">
                               {card.book.genres.slice(0, 3).map((g) => (
-                                <span
-                                  key={g}
-                                  className="text-[9px] font-ui uppercase tracking-wider text-gold/60 bg-gold/5 px-1.5 py-0.5 rounded"
-                                >
-                                  {g}
-                                </span>
+                                <span key={g} className="text-[9px] font-ui uppercase tracking-wider text-gold/60 bg-gold/5 px-1.5 py-0.5 rounded">{g}</span>
                               ))}
                             </div>
                           )}
@@ -316,7 +418,6 @@ export default function MonthlyPicksPage() {
                         </div>
                       </div>
 
-                      {/* Vote buttons and status */}
                       <div className="mt-4 flex items-center gap-2">
                         {canVote && (
                           <button
@@ -337,7 +438,6 @@ export default function MonthlyPicksPage() {
                           </button>
                         )}
 
-                        {/* Show vote indicators */}
                         {isMyVote && (
                           <div className="flex items-center gap-1.5 bg-gold/10 px-3 py-1.5 rounded-full">
                             <Check size={12} className="text-gold" />
@@ -351,7 +451,6 @@ export default function MonthlyPicksPage() {
                           </div>
                         )}
 
-                        {/* Waiting for partner */}
                         {myVote && !partnerVote && !isMyVote && (
                           <p className="font-body text-parchment/30 text-xs italic">Waiting for {partnerName}...</p>
                         )}
@@ -369,8 +468,8 @@ export default function MonthlyPicksPage() {
         </div>
       )}
 
-      {/* AI Reasoning */}
-      {pick?.ai_reasoning && !isGenerating && (
+      {/* AI Reasoning (voting/selected states only) */}
+      {pick?.ai_reasoning && !isGenerating && !isCompleted && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -419,9 +518,9 @@ export default function MonthlyPicksPage() {
         </motion.div>
       )}
 
-      {/* Tiebreak result */}
+      {/* Tiebreak result (voting/selected states) */}
       <AnimatePresence>
-        {(tiebreakResult || pick?.ai_tiebreak_reasoning) && (
+        {!isCompleted && (tiebreakResult || pick?.ai_tiebreak_reasoning) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -441,7 +540,7 @@ export default function MonthlyPicksPage() {
         )}
       </AnimatePresence>
 
-      {/* Selected book celebration */}
+      {/* Selected book celebration (non-completed) */}
       {pick?.status === 'selected' && pick.selected_book && books[pick.selected_book] && (
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -455,7 +554,7 @@ export default function MonthlyPicksPage() {
         </motion.div>
       )}
 
-      {/* Regenerate button */}
+      {/* Regenerate button (voting state only, before voting) */}
       {pick && pick.status === 'voting' && !myVote && (
         <motion.div
           initial={{ opacity: 0 }}
