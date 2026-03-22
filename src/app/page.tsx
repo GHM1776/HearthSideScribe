@@ -442,7 +442,7 @@ function Dashboard({ user }: { user: { id: string; name: string } }) {
         .eq('user_id', user.id);
 
       if (userBooks) {
-        const read = userBooks.filter((ub) => ub.status === 'read');
+        const read = userBooks.filter((ub) => ub.status === 'read' || ub.status === 'would_reread');
         const ratings = read.filter((ub) => ub.rating).map((ub) => ub.rating!);
         const avg = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
         setStats({
