@@ -18,10 +18,12 @@ export async function POST(request: NextRequest) {
 
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    const readBooks = userBooks?.filter((ub) => ub.status === 'read') || [];
+    const readBooks = userBooks?.filter((ub) => ub.status === 'read' || ub.status === 'would_reread') || [];
     const currentlyReading = userBooks?.find((ub) => ub.status === 'reading');
     const recentRead = readBooks[0];
     const totalRead = readBooks.length;
+    const wouldRereadCount = userBooks?.filter((ub) => ub.status === 'would_reread').length || 0;
+    const wantToReadCount = userBooks?.filter((ub) => ub.status === 'want_to_read').length || 0;
     const recentMessages = welcomeLogs?.map((l) => l.message) || [];
 
     const hour = new Date().getHours();
@@ -32,10 +34,11 @@ export async function POST(request: NextRequest) {
 Context:
 - Time of day: ${timeOfDay}
 - Total books read: ${totalRead}
+- Books they'd re-read: ${wouldRereadCount}
 - Currently reading: ${currentlyReading ? `"${currentlyReading.book?.title}" by ${currentlyReading.book?.author}` : 'Nothing at the moment'}
 - Most recently finished: ${recentRead ? `"${recentRead.book?.title}" \u2014 rated ${recentRead.rating}/5${recentRead.hot_take ? ` ("${recentRead.hot_take}")` : ''}` : 'No books yet'}
 - Current monthly pick: ${currentPick?.selected_book_data ? `"${currentPick.selected_book_data.title}"` : 'None selected yet'}
-- Want to read queue: ${userBooks?.filter((ub) => ub.status === 'want_to_read').length || 0} books
+- Want to read queue: ${wantToReadCount} books
 
 DO NOT repeat any of these recent messages:
 ${recentMessages.map((m) => `- "${m}"`).join('\n')}
