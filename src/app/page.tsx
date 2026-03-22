@@ -562,7 +562,7 @@ export default function HomePage() {
         .from('taste_profiles')
         .select('id')
         .eq('user_id', user!.id)
-        .single();
+        .maybeSingle();
       if (profile) {
         sessionStorage.setItem('bookclub-onboarded', 'true');
         setNeedsOnboarding(false);
