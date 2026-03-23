@@ -8,12 +8,13 @@ import { Send, CheckCircle, AlertCircle, Lock, ArrowLeft } from 'lucide-react';
 import { Suspense } from 'react';
 
 const OWL = '\u{1F989}';
+const CODE_LENGTH = 8;
 
 function LoginContent() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'verifying' | 'error'>('idle');
   const [error, setError] = useState('');
-  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '', '', '']);
+  const [otpDigits, setOtpDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -35,61 +36,12 @@ function LoginContent() {
       setStatus('error');
     } else {
       setStatus('sent');
-      // Focus first OTP input after render
       setTimeout(() => inputRefs.current[0]?.focus(), 100);
     }
   };
 
-  const handleOtpChange = (index: number, value: string) => {
-    // Only allow digits
-    const digit = value.replace(/\D/g, '').slice(-1);
-    const newDigits = [...otpDigits];
-    newDigits[index] = digit;
-    setOtpDigits(newDigits);
-
-    // Auto-advance to next input
-    if (digit && index < 7) {
-      inputRefs.current[index + 1]?.focus();
-    }
-
-    // Auto-submit when all 6 digits entered
-    if (digit && index === 7) {
-      const code = newDigits.join('');
-      if (code.length === 6) {
-        verifyOtp(code);
-      }
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length === 0) return;
-
-    const newDigits = [...otpDigits];
-    for (let i = 0; i < pasted.length; i++) {
-      newDigits[i] = pasted[i];
-    }
-    setOtpDigits(newDigits);
-
-    // Focus the next empty input or last input
-    const nextEmpty = newDigits.findIndex((d) => !d);
-    if (nextEmpty >= 0) {
-      inputRefs.current[nextEmpty]?.focus();
-    } else {
-      inputRefs.current[7]?.focus();
-      // All 6 filled — auto-submit
-      verifyOtp(newDigits.join(''));
-    }
-  };
-
   const verifyOtp = async (code: string) => {
+    if (code.length !== CODE_LENGTH) return;
     setStatus('verifying');
     setError('');
 
@@ -103,20 +55,79 @@ function LoginContent() {
     if (verifyError) {
       setError(verifyError.message);
       setStatus('sent');
-      setOtpDigits(['', '', '', '', '', '']);
+      setOtpDigits(Array(CODE_LENGTH).fill(''));
       setTimeout(() => inputRefs.current[0]?.focus(), 100);
     } else {
-      // Success — redirect to home
       router.push('/');
       router.refresh();
+    }
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    const digit = value.replace(/\D/g, '').slice(-1);
+    const newDigits = [...otpDigits];
+    newDigits[index] = digit;
+    setOtpDigits(newDigits);
+
+    if (digit && index < CODE_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-submit when all digits filled
+    if (digit && index === CODE_LENGTH - 1) {
+      const code = newDigits.join('');
+      if (code.length === CODE_LENGTH) {
+        verifyOtp(code);
+      }
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+    if (e.key === 'Enter') {
+      const code = otpDigits.join('');
+      if (code.length === CODE_LENGTH) {
+        verifyOtp(code);
+      }
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, CODE_LENGTH);
+    if (pasted.length === 0) return;
+
+    const newDigits = Array(CODE_LENGTH).fill('');
+    for (let i = 0; i < pasted.length; i++) {
+      newDigits[i] = pasted[i];
+    }
+    setOtpDigits(newDigits);
+
+    const nextEmpty = newDigits.findIndex((d) => !d);
+    if (nextEmpty >= 0) {
+      inputRefs.current[nextEmpty]?.focus();
+    } else {
+      inputRefs.current[CODE_LENGTH - 1]?.focus();
+      verifyOtp(newDigits.join(''));
+    }
+  };
+
+  const handleVerifyClick = () => {
+    const code = otpDigits.join('');
+    if (code.length === CODE_LENGTH) {
+      verifyOtp(code);
     }
   };
 
   const handleBack = () => {
     setStatus('idle');
     setError('');
-    setOtpDigits(['', '', '', '', '', '']);
+    setOtpDigits(Array(CODE_LENGTH).fill(''));
   };
+
+  const codeFilled = otpDigits.every((d) => d !== '');
 
   return (
     <div className="min-h-[100dvh] flex flex-col items-center justify-center px-6">
@@ -172,36 +183,48 @@ function LoginContent() {
               <div className="space-y-1">
                 <p className="font-display text-gold text-base">Check your inbox</p>
                 <p className="font-body text-parchment/60 text-sm leading-relaxed">
-                  A 6-digit code was sent to{' '}
+                  A code was sent to{' '}
                   <span className="text-parchment">{email}</span>
                 </p>
               </div>
 
               {/* OTP input */}
-              <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+              <div className="flex justify-center gap-1.5" onPaste={handleOtpPaste}>
                 {otpDigits.map((digit, i) => (
                   <input
                     key={i}
                     ref={(el) => { inputRefs.current[i] = el; }}
                     type="text"
                     inputMode="numeric"
-                    autoComplete="one-time-code"
+                    autoComplete={i === 0 ? 'one-time-code' : 'off'}
                     maxLength={1}
                     value={digit}
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(i, e)}
                     disabled={status === 'verifying'}
-                    className="w-11 h-13 text-center text-xl font-display text-gold bg-castle-surface border border-castle-border rounded-lg focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold/30 disabled:opacity-50 transition-colors"
+                    className="w-9 h-12 text-center text-lg font-display text-gold bg-castle-surface border border-castle-border rounded-lg focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold/30 disabled:opacity-50 transition-colors"
                   />
                 ))}
               </div>
 
-              {status === 'verifying' && (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
-                  <span className="font-body text-parchment/50 text-sm">Verifying...</span>
-                </div>
-              )}
+              {/* Verify button */}
+              <button
+                onClick={handleVerifyClick}
+                disabled={!codeFilled || status === 'verifying'}
+                className="btn-gold w-full flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {status === 'verifying' ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-castle-bg/30 border-t-castle-bg rounded-full animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={16} />
+                    Enter the Library
+                  </>
+                )}
+              </button>
 
               {error && (
                 <motion.div
@@ -280,7 +303,7 @@ function LoginContent() {
                 )}
               </button>
               <p className="text-parchment/30 text-xs font-body">
-                We&apos;ll send a 6-digit code to your inbox
+                We&apos;ll send a login code to your inbox
               </p>
             </motion.form>
           )}
