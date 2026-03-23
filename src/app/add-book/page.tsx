@@ -139,7 +139,7 @@ function detectAndMapRows(rawRows: Record<string, string>[]): ParsedRow[] {
 
       return null;
     })
-    .filter((r): r is ParsedRow => r !== null && r.title.trim().length > 0);
+    .filter((r): r is NonNullable<typeof r> => r !== null && r.title.trim().length > 0) as ParsedRow[];
 }
 
 function getImportPreview(rows: ParsedRow[]): ImportPreview {
