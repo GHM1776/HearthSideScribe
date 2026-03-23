@@ -13,7 +13,7 @@ function LoginContent() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'verifying' | 'error'>('idle');
   const [error, setError] = useState('');
-  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '', '', '']);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -48,12 +48,12 @@ function LoginContent() {
     setOtpDigits(newDigits);
 
     // Auto-advance to next input
-    if (digit && index < 5) {
+    if (digit && index < 7) {
       inputRefs.current[index + 1]?.focus();
     }
 
     // Auto-submit when all 6 digits entered
-    if (digit && index === 5) {
+    if (digit && index === 7) {
       const code = newDigits.join('');
       if (code.length === 6) {
         verifyOtp(code);
@@ -83,7 +83,7 @@ function LoginContent() {
     if (nextEmpty >= 0) {
       inputRefs.current[nextEmpty]?.focus();
     } else {
-      inputRefs.current[5]?.focus();
+      inputRefs.current[7]?.focus();
       // All 6 filled — auto-submit
       verifyOtp(newDigits.join(''));
     }
