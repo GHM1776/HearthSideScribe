@@ -424,7 +424,7 @@ export default function AddBookPage() {
                 <p className="font-display text-parchment/60 text-xs tracking-wider uppercase">
                   Rating
                 </p>
-                <RatingStars rating={rating} onChange={setRating} />
+                <RatingStars rating={rating} onRate={setRating} />
               </div>
             )}
 
