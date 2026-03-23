@@ -60,22 +60,42 @@ export interface MonthlyPick {
   id: string;
   month: number;
   year: number;
+  // 5 pick slots (legacy column names for first 3, new for 4-5)
   fresh_pick: string | null;
   reread_pick: string | null;
   wildcard_pick: string | null;
+  pick_4: string | null;
+  pick_5: string | null;
+  // Owliver's fun labels keyed by slot index 0-4
+  pick_labels: Record<string, string>;
   selected_book: string | null;
+  // Legacy single-vote columns (kept for backward compat)
   greg_vote: string | null;
   mati_vote: string | null;
+  // Ranked voting: ordered arrays of 3 book IDs [1st, 2nd, 3rd]
+  greg_votes: string[];
+  mati_votes: string[];
   ai_reasoning: string | null;
   ai_tiebreak_reasoning: string | null;
   status: PickStatus;
   regeneration_count: number;
   created_at: string;
+  // Joined book data (optional, populated by queries)
   fresh_pick_book?: Book;
   reread_pick_book?: Book;
   wildcard_pick_book?: Book;
+  pick_4_book?: Book;
+  pick_5_book?: Book;
   selected_book_data?: Book;
 }
+
+// Helper to get all 5 pick IDs from a MonthlyPick row
+export function getPickSlots(pick: MonthlyPick): (string | null)[] {
+  return [pick.fresh_pick, pick.reread_pick, pick.wildcard_pick, pick.pick_4, pick.pick_5];
+}
+
+// Pick slot column names in order
+export const PICK_COLUMNS = ['fresh_pick', 'reread_pick', 'wildcard_pick', 'pick_4', 'pick_5'] as const;
 
 export interface Suggestion {
   id: string;
