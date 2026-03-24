@@ -372,32 +372,85 @@ export default function MonthlyPicksPage() {
 
       {/* ─── SELECTED / READING STATE ─── */}
       {pick && (isReading || pick?.status === 'selected') && selectedBook && !isCompleted && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="castle-card p-6 text-center space-y-3 border-gold/40"
-        >
-          <Crown size={28} className="text-gold mx-auto" />
-          <p className="font-display text-gold text-lg">
-            {isReading ? 'Currently Reading' : "This Month\u2019s Read"}
-          </p>
-          {selectedBook.cover_url && (
-            <div className="flex justify-center">
-              <img
-                src={selectedBook.cover_url}
-                alt={selectedBook.title}
-                className="w-20 h-[120px] rounded-lg shadow-lg shadow-black/30 object-cover"
-              />
-            </div>
-          )}
-          <p className="font-display text-parchment text-base">{selectedBook.title}</p>
-          <p className="font-body text-parchment/50 text-sm">{selectedBook.author}</p>
-          {isReading && (
-            <p className="font-body text-parchment/40 text-xs italic">
-              Added to both your shelves. Happy reading!
+        <>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="castle-card p-6 text-center space-y-3 border-gold/40"
+          >
+            <Crown size={28} className="text-gold mx-auto" />
+            <p className="font-display text-gold text-lg">
+              {isReading ? 'Currently Reading' : "This Month\u2019s Read"}
             </p>
+            {selectedBook.cover_url && (
+              <div className="flex justify-center">
+                <img
+                  src={selectedBook.cover_url}
+                  alt={selectedBook.title}
+                  className="w-20 h-[120px] rounded-lg shadow-lg shadow-black/30 object-cover"
+                />
+              </div>
+            )}
+            <p className="font-display text-parchment text-base">{selectedBook.title}</p>
+            <p className="font-body text-parchment/50 text-sm">{selectedBook.author}</p>
+            {selectedBook.page_count && (
+              <p className="font-body text-parchment/30 text-xs">{selectedBook.page_count} pages</p>
+            )}
+          </motion.div>
+
+          {/* Owliver's pitch for the selected book only */}
+          {pick.ai_reasoning && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="castle-card p-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="text-xl flex-shrink-0">{OWL}</div>
+                <div className="flex-1">
+                  <p className="font-display text-gold text-xs uppercase tracking-wider mb-2">Why This Book</p>
+                  <p className="font-body text-parchment/70 text-sm leading-relaxed">
+                    {(() => {
+                      // Extract only the pitch for the selected book from the full reasoning
+                      const paragraphs = pick.ai_reasoning.split('\n\n');
+                      // Find the paragraph that mentions the selected book title
+                      const bookPitch = paragraphs.find((p) =>
+                        p.toLowerCase().includes(selectedBook.title.toLowerCase())
+                      );
+                      if (bookPitch) {
+                        // Strip any bold label prefix like "**Label:** "
+                        return bookPitch.replace(/^\*\*[^*]+\*\*:\s*/, '').replace(/\*\*/g, '');
+                      }
+                      // Fallback: show the overview (first paragraph)
+                      return paragraphs[0]?.replace(/\*\*/g, '') || '';
+                    })()}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
           )}
-        </motion.div>
+
+          {/* Tiebreak reasoning if applicable */}
+          {pick.ai_tiebreak_reasoning && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="castle-card p-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="text-xl flex-shrink-0">{OWL}</div>
+                <div className="flex-1">
+                  <p className="font-display text-gold text-xs uppercase tracking-wider mb-2">Tiebreak Ruling</p>
+                  <p className="font-body text-parchment/70 text-sm leading-relaxed">
+                    {pick.ai_tiebreak_reasoning}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </>
       )}
 
       {/* ─── 5 PICK CARDS (voting state) ─── */}
@@ -624,9 +677,9 @@ export default function MonthlyPicksPage() {
         </motion.div>
       )}
 
-      {/* ─── TIEBREAK RESULT (voting/selected states) ─── */}
+      {/* ─── TIEBREAK RESULT (voting state) ─── */}
       <AnimatePresence>
-        {!isCompleted && (tiebreakResult || pick?.ai_tiebreak_reasoning) && (
+        {!isCompleted && pick?.status === 'voting' && (tiebreakResult || pick?.ai_tiebreak_reasoning) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -646,8 +699,8 @@ export default function MonthlyPicksPage() {
         )}
       </AnimatePresence>
 
-      {/* ─── AI REASONING (voting/selected/reading states) ─── */}
-      {pick?.ai_reasoning && !isGenerating && !isCompleted && (
+      {/* ─── AI REASONING (voting state only — full pick pitches) ─── */}
+      {pick?.ai_reasoning && !isGenerating && !isCompleted && pick.status === 'voting' && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
