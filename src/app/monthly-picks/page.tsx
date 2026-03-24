@@ -412,17 +412,16 @@ export default function MonthlyPicksPage() {
                   <p className="font-display text-gold text-xs uppercase tracking-wider mb-2">Why This Book</p>
                   <p className="font-body text-parchment/70 text-sm leading-relaxed">
                     {(() => {
-                      // Extract only the pitch for the selected book from the full reasoning
+                      // Reasoning is stored as: overview \n\n pitch1 \n\n pitch2 \n\n ...
+                      // Find which slot the selected book is in, then grab that pitch
                       const paragraphs = pick.ai_reasoning.split('\n\n');
-                      // Find the paragraph that mentions the selected book title
-                      const bookPitch = paragraphs.find((p) =>
-                        p.toLowerCase().includes(selectedBook.title.toLowerCase())
-                      );
-                      if (bookPitch) {
-                        // Strip any bold label prefix like "**Label:** "
-                        return bookPitch.replace(/^\*\*[^*]+\*\*:\s*/, '').replace(/\*\*/g, '');
+                      const slots = [pick.fresh_pick, pick.reread_pick, pick.wildcard_pick, pick.pick_4, pick.pick_5];
+                      const slotIndex = slots.indexOf(pick.selected_book);
+                      // paragraphs[0] = overview, paragraphs[1+] = pitches in slot order
+                      const pitchParagraph = slotIndex >= 0 ? paragraphs[slotIndex + 1] : null;
+                      if (pitchParagraph) {
+                        return pitchParagraph.replace(/^\*\*[^*]+\*\*:\s*/, '').replace(/\*\*/g, '');
                       }
-                      // Fallback: show the overview (first paragraph)
                       return paragraphs[0]?.replace(/\*\*/g, '') || '';
                     })()}
                   </p>
